@@ -1,0 +1,124 @@
+#!/usr/bin/env python
+from __future__ import print_function
+
+import rospy
+import cv2
+import base64
+import requests
+import cv_bridge
+
+import numpy as np
+
+from cloudvis.srv import Get, GetResponse
+from cloudvis.msg import Property
+
+class CloudVisServiceProperty(object):
+  def __init__(self, data):
+    self.__dict__.update(data)
+
+  def __str__(self):
+    return '{}<{}>'.format(self.name, self.type)
+
+class CloudvisService(object):
+  def __init__(self, data):
+    self.__dict__.update(data)
+    self.inputs = [CloudVisServiceProperty(prop) for prop in self.inputs]
+    self.outputs = [CloudVisServiceProperty(prop) for prop in self.outputs]
+
+  def __str__(self):
+    return '{}\n\t{}\n\t{}'.format(
+      self.name,
+      '\n\t'.join(['Input: ' + str(prop) for prop in self.inputs]),
+      '\n\t'.join(['Output: ' + str(prop) for prop in self.outputs])
+    )
+
+class Cloudvis(object):
+  def __init__(self):
+    self.service = rospy.Service('cloudvis', Get, self.request_cb)
+    self.bridge = cv_bridge.CvBridge()
+
+    self.services = {}
+
+    for service_name in self.__get('ws'):
+      self.services[service_name] = CloudvisService(
+        self.__get('ws/{}'.format(service_name))
+      )
+
+  def request_cb(self, request):
+    if not request.service_name:
+      raise rospy.ServiceException('Service name must not be empty')
+
+    req = {}
+
+    service = self.services[request.service_name]
+
+    if not service:
+      raise rospy.ServiceException('Unknown service: {}'.format(request.service_name))
+
+    properties = {prop.name: prop for prop in request.properties if prop.name}
+
+    for prop in service.inputs:
+      if hasattr(prop, 'required') and prop.required and prop.name not in properties:
+        raise rospy.ServiceException('Missing required property: {}'.format(prop.name))  
+
+      if prop.name not in properties:
+        continue
+
+      req[prop.name] = self.__encode(properties[prop.name], prop.type)
+
+    resp = self.__post('ws/{}'.format(service.id), req)
+    out = GetResponse()
+
+    for prop in service.outputs:
+      if prop.name not in resp:
+        continue
+      out.result.append(self.__decode(prop.name, resp[prop.name], prop.type))
+
+    return out
+
+  def __encode(self, prop, encoding_type):
+    if encoding_type == 'image':
+      image = self.bridge.imgmsg_to_cv2(prop.image, desired_encoding="passthrough")
+      retval, buffer = cv2.imencode('.jpg', image)
+      return base64.b64encode(buffer)
+
+    if encoding_type == 'number':
+      return float(prop.data)
+
+    if encoding_type == 'boolean':
+      return bool(prop.data)
+
+    return prop.data
+
+  def __decode(self, name, data, encoding_type):
+    if encoding_type == 'image':
+      buffer = base64.b64decode(data)
+      img_array = np.fromstring(buffer, np.uint8)
+      image = cv2.imdecode(img_array, -1)
+      return Property(name=str(name), image=self.bridge.cv2_to_imgmsg(image))
+
+    return Property(name=str(name), data=str(data))
+
+
+
+  def __get(self, endpoint):
+    resp = requests.get('http://cloudvis.qut.edu.au/{}'.format(endpoint))
+    if resp.status_code != 200:
+      raise rospy.ServiceException('Unable to communicate with endpoint: {}'.format(endpoint))
+    return resp.json()
+
+  def __post(self, endpoint, data):
+    resp = requests.post('http://cloudvis.qut.edu.au/{}'.format(endpoint), json=data)
+    if resp.status_code != 200:
+      raise rospy.ServiceException('Unable to communicate with endpoint: {}'.format(endpoint))
+    return resp.json()
+
+  def run(self):
+    rospy.spin()
+
+
+if __name__ == '__main__':
+  rospy.init_node('cloudvis')
+
+  cloudvis = Cloudvis()
+  cloudvis.run()
