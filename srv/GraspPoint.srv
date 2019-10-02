@@ -1,0 +1,4 @@
+sensor_msgs/Image depth_image
+qut_msgs/Object object
+---
+geometry_msgs/StampedPose pose

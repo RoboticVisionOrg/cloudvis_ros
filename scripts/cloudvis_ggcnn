@@ -2,13 +2,20 @@
 from __future__ import print_function
 
 import rospy
+import cv_bridge
+
+
+from cloudvis.srv import GraspPoint, GraspPointRequest, Get, GetRequest
+from cloudvis.msg import Property
 
 from sensor_msgs.msg import Image, CameraInfo
-from qut_msgs.msg import Object
+
+
 
 class CloudvisGGCNN(object):
   def __init__(self):
-    self.service = rospy.Service('cloudvis/ggcnn', Object, self.request_cb)
+    self.service = rospy.Service('cloudvis/ggcnn', GraspPoint, self.request_cb)
+    self.bridge = cv_bridge.CvBridge()
 
     camera_info = rospy.wait_for_message(
       rospy.get_param('~camera/info_topic'), 
@@ -23,12 +30,25 @@ class CloudvisGGCNN(object):
     self.cam_fov = rospy.get_param('~camera/fov')
     
   def request_cb(self, request):
+    proxy = rospy.ServiceProxy('cloudvis', Get)
+    proxy.wait_for_service()
+
+    depth = self.bridge.imgmsg_to_cv2(request.depth_image, desired_encoding="passthrough")
+
+    req = GetRequest()
+    req.service_name = 'ggcnn'
+
+    req.properties.append(Property(name='image', image=request.depth_image))
+
+    response = proxy(req)
+    
+    
 
   def run(self):
     rospy.spin()
 
 if __name__ == '__main__':
-  rospy.init_node('cloudvis')
+  rospy.init_node('cloudvis_ggcnn')
 
-  cloudvis = Cloudvis()
+  cloudvis = CloudvisGGCNN()
   cloudvis.run()

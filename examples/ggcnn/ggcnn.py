@@ -14,17 +14,16 @@ from cloudvis.msg import Property
 
 path = os.path.dirname(os.path.abspath(__file__))
 
-img = cv2.imread(os.path.join(path, 'pcd0102d.tiff'), -1)
+rospy.init_node('cloudvis_test')
 
 bridge = cv_bridge.CvBridge()
-
-rospy.init_node('cloudvis_test')
 
 cloudvis = rospy.ServiceProxy('cloudvis', Get)
 
 req = GetRequest()
 req.service_name = 'ggcnn'
-print(img.dtype)
+
+img = cv2.imread(os.path.join(path, 'pcd0102d.tiff'), -1)
 image_message = bridge.cv2_to_imgmsg(img, encoding="passthrough")
 
 req.properties.append(Property(name='image', image=image_message))

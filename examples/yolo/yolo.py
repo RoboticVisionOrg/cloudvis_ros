@@ -9,6 +9,8 @@ import cv_bridge
 from cloudvis.srv import Get, GetRequest
 from cloudvis.msg import Property
 
+from qut_msgs.srv import FindObjects, FindObjectsRequest
+
 path = os.path.dirname(os.path.abspath(__file__))
 
 img = cv2.imread(os.path.join(path, 'dog.jpg'))
@@ -36,3 +38,18 @@ for prop in response.result:
     cv2.waitKey(0)
   else:
     print('{}: {}'.format(prop.name, prop.data))
+
+cloudvis = rospy.ServiceProxy('cloudvis/yolo', FindObjects)
+
+req = FindObjectsRequest()
+req.input_rgb_image = image_message
+
+response = cloudvis(req)
+
+for obj in response.objects:
+  image = bridge.imgmsg_to_cv2(obj.cropped_rgb, desired_encoding="passthrough")
+
+  cv2.imshow(obj.class_label, image)
+  cv2.waitKey(0)
+
+

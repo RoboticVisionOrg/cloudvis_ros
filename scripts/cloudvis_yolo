@@ -16,6 +16,7 @@ from qut_msgs.msg import Object
 class CloudvisYOLO(object):
   def __init__(self):
     self.service = rospy.Service('cloudvis/yolo', FindObjects, self.request_cb)
+
     self.bridge = cv_bridge.CvBridge()
 
   def request_cb(self, request):
@@ -45,7 +46,6 @@ class CloudvisYOLO(object):
       obj.height = int(w)
       
       obj.cropped_rgb = self.bridge.cv2_to_imgmsg(image[obj.y_top:int(obj.y_top+obj.height), obj.x_left:int(obj.x_left+obj.width)])
-      obj.cropped_mask = self.bridge.cv2_to_imgmsg(np.ones((obj.height,obj.width)))
 
       result.objects.append(obj)
 
