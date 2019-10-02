@@ -20,11 +20,11 @@ rospy.init_node('cloudvis_test')
 cloudvis = rospy.ServiceProxy('cloudvis', Get)
 
 req = GetRequest()
-req.service_name = 'skinCancerDetector'
+req.service_name = 'yolo'
 
 image_message = bridge.cv2_to_imgmsg(img, encoding="passthrough")
 
-req.properties.append(Property(name='input_image', image=image_message))
+req.properties.append(Property(name='image', image=image_message))
 req.properties.append(Property(name='render', data='true'))
 
 response = cloudvis(req)

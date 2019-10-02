@@ -3,6 +3,7 @@ from __future__ import print_function
 
 import rospy
 import cv2
+import json
 import base64
 import requests
 import cv_bridge
@@ -79,7 +80,7 @@ class Cloudvis(object):
   def __encode(self, prop, encoding_type):
     if encoding_type == 'image':
       image = self.bridge.imgmsg_to_cv2(prop.image, desired_encoding="passthrough")
-      retval, buffer = cv2.imencode('.jpg', image)
+      retval, buffer = cv2.imencode('.tiff' if image.dtype == np.float32 else '.jpg', image)
       return base64.b64encode(buffer)
 
     if encoding_type == 'number':
@@ -99,23 +100,20 @@ class Cloudvis(object):
 
     return Property(name=str(name), data=str(data))
 
-
-
   def __get(self, endpoint):
     resp = requests.get('http://cloudvis.qut.edu.au/{}'.format(endpoint))
     if resp.status_code != 200:
-      raise rospy.ServiceException('Unable to communicate with endpoint: {}'.format(endpoint))
+      raise rospy.ServiceException('Unable to communicate with endpoint: {} <{}>'.format(endpoint, resp.status_code))
     return resp.json()
 
   def __post(self, endpoint, data):
-    resp = requests.post('http://cloudvis.qut.edu.au/{}'.format(endpoint), json=data)
+    resp = requests.post('http://cloudvis.qut.edu.au/{}'.format(endpoint), json=data)  
     if resp.status_code != 200:
-      raise rospy.ServiceException('Unable to communicate with endpoint: {}'.format(endpoint))
+      raise rospy.ServiceException('Unable to communicate with endpoint: {} <{}>'.format(endpoint, resp.status_code))
     return resp.json()
 
   def run(self):
     rospy.spin()
-
 
 if __name__ == '__main__':
   rospy.init_node('cloudvis')
