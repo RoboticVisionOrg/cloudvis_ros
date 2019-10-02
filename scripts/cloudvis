@@ -97,7 +97,10 @@ class Cloudvis(object):
       img_array = np.fromstring(buffer, np.uint8)
       image = cv2.imdecode(img_array, -1)
       return Property(name=str(name), image=self.bridge.cv2_to_imgmsg(image))
-
+    
+    if isinstance(data, list):
+      return Property(name=str(name), data=json.dumps(data))
+      
     return Property(name=str(name), data=str(data))
 
   def __get(self, endpoint):

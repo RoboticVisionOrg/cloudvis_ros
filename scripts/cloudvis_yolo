@@ -1,0 +1,61 @@
+#!/usr/bin/env python
+from __future__ import print_function
+
+import rospy
+import json
+import cv2
+import cv_bridge
+import numpy as np
+
+from cloudvis.srv import Get, GetRequest
+from qut_msgs.srv import FindObjects, FindObjectsResponse
+
+from cloudvis.msg import Property
+from qut_msgs.msg import Object
+
+class CloudvisYOLO(object):
+  def __init__(self):
+    self.service = rospy.Service('cloudvis/yolo', FindObjects, self.request_cb)
+    self.bridge = cv_bridge.CvBridge()
+
+  def request_cb(self, request):
+    proxy = rospy.ServiceProxy('cloudvis', Get)
+    proxy.wait_for_service()
+
+    req = GetRequest()
+    req.service_name = 'yolo'
+
+    req.properties.append(Property(name='image', image=request.input_rgb_image))
+
+    response = proxy(req)
+    
+    result = FindObjectsResponse()
+    
+    image = self.bridge.imgmsg_to_cv2(request.input_rgb_image, desired_encoding="passthrough")
+
+    for detection in json.loads(response.result[0].data):
+      c_x, c_y, w, h = detection[2]
+      
+      obj = Object()
+      obj.class_label = detection[0].encode('ascii')
+      
+      obj.x_left = max(int(c_x - int(w) / 2), 0)
+      obj.y_top = max(int(c_y - int(w) / 2), 0)
+      obj.width = int(w)
+      obj.height = int(w)
+      
+      obj.cropped_rgb = self.bridge.cv2_to_imgmsg(image[obj.y_top:int(obj.y_top+obj.height), obj.x_left:int(obj.x_left+obj.width)])
+      obj.cropped_mask = self.bridge.cv2_to_imgmsg(np.ones((obj.height,obj.width)))
+
+      result.objects.append(obj)
+
+    return result
+
+  def run(self):
+    rospy.spin()
+
+if __name__ == '__main__':
+  rospy.init_node('cloudvis_yolo')
+
+  cloudvis = CloudvisYOLO()
+  cloudvis.run()
