@@ -46,6 +46,7 @@ find_package(catkin REQUIRED message_generation std_msgs sensor_msgs qut_msgs)
 add_message_files(
   FILES
   Property.msg
+  Grasp.msg
 )
 
 ## Generate services in the 'srv' folder
