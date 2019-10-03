@@ -1,4 +1,0 @@
-sensor_msgs/Image depth_image
-qut_msgs/Object object
----
-cloudvis/Grasp grasp
