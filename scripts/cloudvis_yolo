@@ -8,10 +8,10 @@ import cv_bridge
 import numpy as np
 
 from cloudvis.srv import Get, GetRequest
-from qut_msgs.srv import FindObjects, FindObjectsResponse
+from rv_msgs.srv import FindObjects, FindObjectsResponse
 
 from cloudvis.msg import Property
-from qut_msgs.msg import Object
+from rv_msgs.msg import Object
 
 class CloudvisYOLO(object):
   def __init__(self):
