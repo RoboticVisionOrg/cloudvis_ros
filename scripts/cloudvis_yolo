@@ -11,7 +11,7 @@ from cloudvis.srv import Get, GetRequest
 from rv_msgs.srv import FindObjects, FindObjectsResponse
 
 from cloudvis.msg import Property
-from rv_msgs.msg import Object
+from rv_msgs.msg import Objects, Detection
 
 class CloudvisYOLO(object):
   def __init__(self):
@@ -37,7 +37,7 @@ class CloudvisYOLO(object):
     for detection in json.loads(response.result[0].data):
       c_x, c_y, w, h = detection[2]
       
-      obj = Object()
+      obj = Detection()
       obj.class_label = detection[0].encode('ascii')
       
       obj.x_left = max(int(c_x - int(w) / 2), 0)
@@ -47,7 +47,7 @@ class CloudvisYOLO(object):
       
       obj.cropped_rgb = self.bridge.cv2_to_imgmsg(image[obj.y_top:int(obj.y_top+obj.height), obj.x_left:int(obj.x_left+obj.width)])
 
-      result.objects.append(obj)
+      result.objects.detections.append(obj)
 
     return result
 
