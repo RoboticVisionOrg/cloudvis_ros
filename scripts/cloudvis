@@ -104,16 +104,24 @@ class Cloudvis(object):
     return Property(name=str(name), data=str(data))
 
   def __get(self, endpoint):
-    resp = requests.get('http://cloudvis.qut.edu.au/{}'.format(endpoint))
-    if resp.status_code != 200:
-      raise rospy.ServiceException('Unable to communicate with endpoint: {} <{}>'.format(endpoint, resp.status_code))
-    return resp.json()
+    try:
+      resp = requests.get('http://cloudvis.qut.edu.au/{}'.format(endpoint), timeout=5)
+      if resp.status_code != 200:
+        raise rospy.ServiceException('Unable to communicate with endpoint: {} <{}>'.format(endpoint, resp.status_code))
+      return resp.json()
+
+    except requests.exceptions.Timeout:
+      raise rospy.ServiceException('Unable to communicate with endpoint: {} <timeout>'.format(endpoint))
 
   def __post(self, endpoint, data):
-    resp = requests.post('http://cloudvis.qut.edu.au/{}'.format(endpoint), json=data)  
-    if resp.status_code != 200:
-      raise rospy.ServiceException('Unable to communicate with endpoint: {} <{}>'.format(endpoint, resp.status_code))
-    return resp.json()
+    try:
+      resp = requests.post('http://cloudvis.qut.edu.au/{}'.format(endpoint), json=data, timeout=5)  
+      if resp.status_code != 200:
+        raise rospy.ServiceException('Unable to communicate with endpoint: {} <{}>'.format(endpoint, resp.status_code))
+      return resp.json()
+
+    except requests.exceptions.Timeout:
+      raise rospy.ServiceException('Unable to communicate with endpoint: {} <timeout>'.format(endpoint))
 
   def run(self):
     rospy.spin()
