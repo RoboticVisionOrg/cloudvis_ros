@@ -30,7 +30,7 @@ class CloudvisYOLO(object):
 
     resp = proxy(req)
     
-    response = GetDetectionsResponse()
+    response = GetDetectionsResponse(result=request.observation)
     
     image = self.bridge.imgmsg_to_cv2(request.observation.rgb_image, desired_encoding="passthrough")
 
