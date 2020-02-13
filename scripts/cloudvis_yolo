@@ -8,14 +8,14 @@ import cv_bridge
 import numpy as np
 
 from cloudvis.srv import Get, GetRequest
-from rv_msgs.srv import FindObjects, FindObjectsResponse
+from rv_msgs.srv import GetDetections, GetDetectionsResponse
 
 from cloudvis.msg import Property
-from rv_msgs.msg import Objects, Detection
+from rv_msgs.msg import Observation, Detection
 
 class CloudvisYOLO(object):
   def __init__(self):
-    self.service = rospy.Service('cloudvis/yolo', FindObjects, self.request_cb)
+    self.service = rospy.Service('cloudvis/yolo', GetDetections, self.request_cb)
 
     self.bridge = cv_bridge.CvBridge()
 
@@ -26,15 +26,15 @@ class CloudvisYOLO(object):
     req = GetRequest()
     req.service_name = 'yolo'
 
-    req.properties.append(Property(name='image', image=request.input_rgb_image))
+    req.properties.append(Property(name='image', image=request.observation.rgb_image))
 
-    response = proxy(req)
+    resp = proxy(req)
     
-    result = FindObjectsResponse()
+    response = GetDetectionsResponse()
     
-    image = self.bridge.imgmsg_to_cv2(request.input_rgb_image, desired_encoding="passthrough")
+    image = self.bridge.imgmsg_to_cv2(request.observation.rgb_image, desired_encoding="passthrough")
 
-    for detection in json.loads(response.result[0].data):
+    for detection in json.loads(resp.result[0].data):
       c_x, c_y, w, h = detection[2]
       
       obj = Detection()
@@ -47,9 +47,9 @@ class CloudvisYOLO(object):
       
       obj.cropped_rgb = self.bridge.cv2_to_imgmsg(image[obj.y_top:int(obj.y_top+obj.height), obj.x_left:int(obj.x_left+obj.width)])
 
-      result.objects.detections.append(obj)
+      response.result.detections.append(obj)
 
-    return result
+    return response
 
   def run(self):
     rospy.spin()
