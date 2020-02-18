@@ -33,6 +33,7 @@ class CloudvisYOLO(object):
     response = GetDetectionsResponse(result=request.observation)
     
     image = self.bridge.imgmsg_to_cv2(request.observation.rgb_image, desired_encoding="passthrough")
+    depth = self.bridge.imgmsg_to_cv2(request.observation.depth_image, desired_encoding="passthrough")
 
     for detection in json.loads(resp.result[0].data):
       c_x, c_y, w, h = detection[2]
@@ -41,11 +42,13 @@ class CloudvisYOLO(object):
       obj.class_label = detection[0].encode('ascii')
       
       obj.x_left = max(int(c_x - int(w) / 2), 0)
-      obj.y_top = max(int(c_y - int(w) / 2), 0)
+      obj.y_top = max(int(c_y - int(h) / 2), 0)
       obj.width = int(w)
-      obj.height = int(w)
+      obj.height = int(h)
       
       obj.cropped_rgb = self.bridge.cv2_to_imgmsg(image[obj.y_top:int(obj.y_top+obj.height), obj.x_left:int(obj.x_left+obj.width)])
+      obj.cropped_depth = self.bridge.cv2_to_imgmsg(depth[obj.y_top:int(obj.y_top+obj.height), obj.x_left:int(obj.x_left+obj.width)])
+      obj.cropped_mask = self.bridge.cv2_to_imgmsg(np.ones(shape=(obj.height, obj.width), dtype=np.uint8), encoding='passthrough')
 
       response.result.detections.append(obj)
 
